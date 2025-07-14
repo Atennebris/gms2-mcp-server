@@ -34,8 +34,8 @@ Additionally, the user creates:
 ## Installation
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/vibecod_gms2_mcpserver_beta_0.0.2.git
-cd vibecod_gms2_mcpserver_beta_0.0.2
+git clone https://github.com/Atennebris/gms2-mcp-server
+cd gms2-mcp-server
 ```
 
 ### 2. Create virtual environment
