@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gms2-mcp": {
+      "command": "python",
+      "args": ["path"]
+    }
+  }
+}

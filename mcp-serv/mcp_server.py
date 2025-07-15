@@ -8,6 +8,7 @@ import asyncio
 import argparse
 import json
 import os
+import sys
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server
@@ -15,6 +16,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 from dotenv import load_dotenv
 
+# Импортируем gms2_parser из локальной папки
 from gms2_parser import GMS2ProjectParser
 
 
@@ -26,6 +28,47 @@ class GMS2MCPServer:
         self.parser = None
         if project_path:
             self.parser = GMS2ProjectParser(project_path)
+        print(f"DEBUG: GMS2MCPServer initialized with project_path: {project_path}")
+    
+    def _get_project_path(self, arguments: Dict[str, Any]) -> str:
+        """Получает правильный путь к проекту из аргументов или config.env"""
+        provided_path = arguments.get("project_path")
+        
+        # Если путь не передан, используем из config.env
+        if not provided_path:
+            if self.project_path:
+                return self.project_path
+            else:
+                # Попытаемся загрузить из config.env напрямую
+                config_file = os.path.join(os.path.dirname(__file__), 'config.env')
+                print(f"DEBUG: Looking for config.env at: {config_file}")
+                load_dotenv(config_file)
+                config_path = os.getenv('GMS2_PROJECT_PATH')
+                if config_path:
+                    print(f"DEBUG: Loading project path from config.env: {config_path}")
+                    return config_path
+                else:
+                    raise ValueError(f"Project path not configured in config.env and not provided. Current self.project_path: {self.project_path}, config_file: {config_file}")
+        
+        # Проверяем, не является ли переданный путь корнем MCP сервера
+        current_dir = os.getcwd()
+        if os.path.abspath(provided_path) == os.path.abspath(current_dir):
+            if self.project_path:
+                return self.project_path
+            else:
+                # Попытаемся загрузить из config.env напрямую
+                config_file = os.path.join(os.path.dirname(__file__), 'config.env')
+                print(f"DEBUG: Looking for config.env at: {config_file}")
+                load_dotenv(config_file)
+                config_path = os.getenv('GMS2_PROJECT_PATH')
+                if config_path:
+                    print(f"DEBUG: Loading project path from config.env: {config_path}")
+                    return config_path
+                else:
+                    raise ValueError(f"Provided path is MCP server root, but project path not configured in config.env. Current self.project_path: {self.project_path}, config_file: {config_file}")
+        
+        # Если передан другой путь, используем его
+        return provided_path
     
     def get_tools(self) -> List[Tool]:
         """Возвращает список доступных инструментов"""
@@ -38,10 +81,10 @@ class GMS2MCPServer:
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Путь к папке проекта GMS2 (содержащей .yyp файл)"
+                            "description": "Путь к папке проекта GMS2 (необязательно, используется из config.env)"
                         }
                     },
-                    "required": ["project_path"]
+                    "required": []
                 }
             ),
             Tool(
@@ -52,14 +95,14 @@ class GMS2MCPServer:
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Путь к папке проекта GMS2"
+                            "description": "Путь к папке проекта GMS2 (необязательно, используется из config.env)"
                         },
                         "file_path": {
                             "type": "string",
                             "description": "Путь к GML файлу (относительный или абсолютный)"
                         }
                     },
-                    "required": ["project_path", "file_path"]
+                    "required": ["file_path"]
                 }
             ),
             Tool(
@@ -70,14 +113,14 @@ class GMS2MCPServer:
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Путь к папке проекта GMS2"
+                            "description": "Путь к папке проекта GMS2 (необязательно, используется из config.env)"
                         },
                         "room_name": {
                             "type": "string",
                             "description": "Имя комнаты"
                         }
                     },
-                    "required": ["project_path", "room_name"]
+                    "required": ["room_name"]
                 }
             ),
             Tool(
@@ -88,14 +131,14 @@ class GMS2MCPServer:
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Путь к папке проекта GMS2"
+                            "description": "Путь к папке проекта GMS2 (необязательно, используется из config.env)"
                         },
                         "object_name": {
                             "type": "string",
                             "description": "Имя объекта"
                         }
                     },
-                    "required": ["project_path", "object_name"]
+                    "required": ["object_name"]
                 }
             ),
             Tool(
@@ -106,14 +149,14 @@ class GMS2MCPServer:
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Путь к папке проекта GMS2"
+                            "description": "Путь к папке проекта GMS2 (необязательно, используется из config.env)"
                         },
                         "sprite_name": {
                             "type": "string",
                             "description": "Имя спрайта"
                         }
                     },
-                    "required": ["project_path", "sprite_name"]
+                    "required": ["sprite_name"]
                 }
             ),
             Tool(
@@ -124,7 +167,7 @@ class GMS2MCPServer:
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Путь к папке проекта GMS2"
+                            "description": "Путь к папке проекта GMS2 (необязательно, используется из config.env)"
                         },
                         "save_to_file": {
                             "type": "boolean",
@@ -136,7 +179,7 @@ class GMS2MCPServer:
                             "description": "Путь для сохранения файла (если save_to_file=true)"
                         }
                     },
-                    "required": ["project_path"]
+                    "required": []
                 }
             ),
             Tool(
@@ -147,7 +190,7 @@ class GMS2MCPServer:
                     "properties": {
                         "project_path": {
                             "type": "string",
-                            "description": "Путь к папке проекта GMS2"
+                            "description": "Путь к папке проекта GMS2 (необязательно, используется из config.env)"
                         },
                         "category": {
                             "type": "string",
@@ -155,7 +198,7 @@ class GMS2MCPServer:
                             "enum": ["Objects", "Scripts", "Rooms", "Sprites", "Notes", "Tile Sets", "Timelines", "Fonts", "Sounds", "Extensions"]
                         }
                     },
-                    "required": ["project_path"]
+                    "required": []
                 }
             )
         ]
@@ -184,9 +227,10 @@ class GMS2MCPServer:
     
     async def _scan_project(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Сканирует проект GMS2"""
-        project_path = arguments.get("project_path")
-        if not project_path:
-            return [TextContent(type="text", text="Error: project_path is required")]
+        try:
+            project_path = self._get_project_path(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
         
         parser = GMS2ProjectParser(project_path)
         result = parser.scan_project()
@@ -222,11 +266,14 @@ class GMS2MCPServer:
     
     async def _get_gml_content(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Получает содержимое GML файла"""
-        project_path = arguments.get("project_path")
+        try:
+            project_path = self._get_project_path(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+            
         file_path = arguments.get("file_path")
-        
-        if not project_path or not file_path:
-            return [TextContent(type="text", text="Error: project_path and file_path are required")]
+        if not file_path:
+            return [TextContent(type="text", text="Error: file_path is required")]
         
         parser = GMS2ProjectParser(project_path)
         
@@ -249,11 +296,14 @@ class GMS2MCPServer:
     
     async def _get_room_info(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Получает информацию о комнате"""
-        project_path = arguments.get("project_path")
+        try:
+            project_path = self._get_project_path(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+            
         room_name = arguments.get("room_name")
-        
-        if not project_path or not room_name:
-            return [TextContent(type="text", text="Error: project_path and room_name are required")]
+        if not room_name:
+            return [TextContent(type="text", text="Error: room_name is required")]
         
         parser = GMS2ProjectParser(project_path)
         result = parser.get_room_info(room_name)
@@ -277,11 +327,14 @@ class GMS2MCPServer:
     
     async def _get_object_info(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Получает информацию об объекте"""
-        project_path = arguments.get("project_path")
+        try:
+            project_path = self._get_project_path(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+            
         object_name = arguments.get("object_name")
-        
-        if not project_path or not object_name:
-            return [TextContent(type="text", text="Error: project_path and object_name are required")]
+        if not object_name:
+            return [TextContent(type="text", text="Error: object_name is required")]
         
         parser = GMS2ProjectParser(project_path)
         result = parser.get_object_info(object_name)
@@ -305,11 +358,14 @@ class GMS2MCPServer:
     
     async def _get_sprite_info(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Получает информацию о спрайте"""
-        project_path = arguments.get("project_path")
+        try:
+            project_path = self._get_project_path(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+            
         sprite_name = arguments.get("sprite_name")
-        
-        if not project_path or not sprite_name:
-            return [TextContent(type="text", text="Error: project_path and sprite_name are required")]
+        if not sprite_name:
+            return [TextContent(type="text", text="Error: sprite_name is required")]
         
         parser = GMS2ProjectParser(project_path)
         result = parser.get_sprite_info(sprite_name)
@@ -335,12 +391,13 @@ class GMS2MCPServer:
     
     async def _export_project_data(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Экспортирует все данные проекта"""
-        project_path = arguments.get("project_path")
+        try:
+            project_path = self._get_project_path(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+            
         save_to_file = arguments.get("save_to_file", False)
         output_file = arguments.get("output_file")
-        
-        if not project_path:
-            return [TextContent(type="text", text="Error: project_path is required")]
         
         parser = GMS2ProjectParser(project_path)
         export_data = parser.export_all_data()
@@ -364,11 +421,12 @@ class GMS2MCPServer:
     
     async def _list_project_assets(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Список ассетов проекта"""
-        project_path = arguments.get("project_path")
+        try:
+            project_path = self._get_project_path(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+            
         category_filter = arguments.get("category")
-        
-        if not project_path:
-            return [TextContent(type="text", text="Error: project_path is required")]
         
         parser = GMS2ProjectParser(project_path)
         result = parser.scan_project()
@@ -403,7 +461,8 @@ class GMS2MCPServer:
 async def main():
     """Главная функция запуска сервера"""
     # Загружаем переменные окружения из config.env
-    load_dotenv('config.env')
+    config_file = os.path.join(os.path.dirname(__file__), 'config.env')
+    load_dotenv(config_file)
     
     parser = argparse.ArgumentParser(description="GameMaker Studio 2 MCP Server")
     parser.add_argument("--project-path", type=str, help="Path to GMS2 project (overrides config.env)")
@@ -417,6 +476,10 @@ async def main():
     
     # Создаем экземпляр сервера
     mcp_server = GMS2MCPServer(project_path)
+    
+    # Отладочная информация
+    if project_path:
+        print(f"MCP Server initialized with project path: {project_path}")
     
     # Создаем MCP Server
     server = Server("gms2-mcp-server")
@@ -437,4 +500,11 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        print("Starting MCP server...", file=sys.stderr)
+        asyncio.run(main())
+    except Exception as e:
+        print(f"Error starting MCP server: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

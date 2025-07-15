@@ -15,15 +15,13 @@ MCP сервер для работы с проектами GameMaker Studio 2 в
 ## Структура проекта
 ```
 gms2-mcp-server/
-├── tools/
-│   ├── mcp_wrapper.py      # Обертка для запуска MCP сервера 
-│   └── gms2_parser.py      # Парсер проектов GameMaker Studio 2 
 ├── mcp-serv/
-│   └── mcp_server.py       # MCP сервер с 7 инструментами 
+│   ├── mcp_server.py       # MCP сервер с 7 инструментами 
+│   ├── gms2_parser.py      # Парсер проектов GameMaker Studio 2 
+│   └── config.env          # Конфигурация проекта
 ├── docs/
 │   ├── README.md           # Документация проекта на английском
 │   └── README_RU.md        # Документация проекта на русском
-├── config.env              # Конфигурация проекта
 ├── requirements.txt        # Зависимости (mcp==1.11.0, python-dotenv==1.1.1)
 └── venv/                   # Виртуальное окружение Python (создается пользователем)
 
@@ -31,12 +29,11 @@ gms2-mcp-server/
 └── .cursor/mcp.json       # Конфигурация Cursor IDE
 ```
 
-
 ## Установка
 ### 1. Клонирование репозитория
 ```bash
-git clone https://github.com/your-username/vibecod_gms2_mcpserver_beta_0.0.2.git
-cd vibecod_gms2_mcpserver_beta_0.0.2
+git clone https://github.com/Atennebris/gms2-mcp-server
+cd gms2-mcp-server
 ```
 
 ### 2. Создание виртуального окружения
@@ -61,7 +58,7 @@ pip install -r requirements.txt
 - `python-dotenv==1.1.1` - загрузка конфигурации из .env файлов
 
 ### 4. Настройка конфигурации
-Отредактируйте файл `config.env`:
+Отредактируйте файл `mcp-serv/config.env`:
 ```env
 # Путь к вашему проекту GMS2 (обязательно!)
 GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Your GMS2 Project
@@ -72,17 +69,15 @@ GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Crystal Fusion
 
 ### 5. Конфигурация Cursor IDE
 
-Есть два способа настройки MCP сервера:
-
-#### Вариант 1: Локальная конфигурация (только для этого проекта)
 Создайте файл `.cursor/mcp.json` в корне вашего проекта со следующим содержимым:
+
+#### Простая конфигурация с абсолютным путем (рекомендуется):
 ```json
 {
   "mcpServers": {
     "gms2-mcp": {
-      "command": "venv/Scripts/python.exe",
-      "args": ["tools/mcp_wrapper.py"],
-      "cwd": "/path/to/your/gms2-mcp-server"
+      "command": "python",
+      "args": ["C:/Users/YourName/Desktop/gms2-mcp-server/mcp-serv/mcp_server.py"]
     }
   }
 }
@@ -95,13 +90,12 @@ GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Crystal Fusion
 4. Откроется глобальный mcp.json файл
 5. Добавьте туда такую же конфигурацию
 
-**⚠️ Важно:** В любом случае замените `cwd` на абсолютный путь к папке вашего MCP сервера!
+**⚠️ Важно:** Замените путь на абсолютный путь к папке вашего MCP сервера!
 
 **Архитектура запуска:**
-1. Cursor IDE запускает `venv/Scripts/python.exe tools/mcp_wrapper.py`
-2. `mcp_wrapper.py` подготавливает окружение и запускает `mcp_server.py`
-3. `mcp_server.py` загружает конфигурацию из `config.env` и инициализирует парсер
-4. Парсер `gms2_parser.py` предоставляет функциональность для работы с GMS2 проектами
+1. Cursor IDE напрямую запускает `python mcp-serv/mcp_server.py`
+2. `mcp_server.py` загружает конфигурацию из `mcp-serv/config.env` и инициализирует парсер
+3. Парсер `gms2_parser.py` предоставляет функциональность для работы с GMS2 проектами
 
 ### 6. Перезапуск Cursor IDE
 После настройки конфигурации перезапустите Cursor IDE.
@@ -124,10 +118,11 @@ GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Crystal Fusion
 - Автоматическое определение структуры проекта
 - Экспорт в человекочитаемый формат
 - Полная совместимость с форматами .yyp и .yy файлов
+- Упрощенная конфигурация без wrapper скриптов
 
 ## Пример использования
 
-В Cursor IDE(ии-агента) вы можете спросить:
+В Cursor IDE (AI-агента) вы можете спросить:
 ```
 "Покажи структуру моего GMS2 проекта"
 "Прочитай код объекта obj_player" 
@@ -145,19 +140,25 @@ GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Crystal Fusion
 ## Решение проблем
 
 ### MCP сервер показывает красный статус
-1. Проверьте абсолютный путь в `.cursor/mcp.json` → `cwd`
+1. Проверьте абсолютный путь в `.cursor/mcp.json`
 2. Убедитесь что venv создан и зависимости установлены
-3. Проверьте путь к проекту в `config.env`
+3. Проверьте путь к проекту в `mcp-serv/config.env`
 
 ### Сервер не находит проект
-1. Убедитесь что путь в `config.env` правильный
+1. Убедитесь что путь в `mcp-serv/config.env` правильный
 2. Путь должен указывать на папку с .yyp файлом
 3. Используйте прямые слеши `/` даже в Windows
 
 ### Инструменты не отображаются (0 tools)
 1. Перезапустите Cursor IDE
-2. Проверьте что Python интерпретатор из venv доступен
+2. Проверьте что Python интерпретатор доступен
 3. Протестируйте сервер вручную: `python mcp-serv/mcp_server.py`
+
+### Ошибки импорта или проблемы с путями
+Все проблемы с импортами и путями исправлены в текущей версии:
+- `gms2_parser.py` теперь находится в той же папке что и `mcp_server.py`
+- `config.env` расположен в папке `mcp-serv/`
+- Wrapper скрипты больше не нужны
 
 ## Техническая информация
 
@@ -166,10 +167,18 @@ GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Crystal Fusion
 - `python-dotenv==1.1.1` - загрузка конфигурации из .env файлов
 
 ### Архитектура
-Проект состоит из трех основных компонентов:
-- **tools/mcp_wrapper.py** - обертка для запуска MCP сервера
-- **tools/gms2_parser.py** - парсер проектов GameMaker Studio 2
+Проект состоит из двух основных компонентов:
+- **mcp-serv/gms2_parser.py** - парсер проектов GameMaker Studio 2
 - **mcp-serv/mcp_server.py** - MCP сервер с 7 инструментами для анализа
+
+### Что изменилось
+**Улучшения версии 2.0:**
+- ✅ Упрощенная структура проекта (без wrapper скриптов)
+- ✅ Исправлены все проблемы с импортами и путями
+- ✅ Перенесен config.env в папку mcp-serv/
+- ✅ Весь серверный код объединен в mcp-serv/
+- ✅ Упрощена конфигурация .cursor/mcp.json
+- ✅ Улучшена обработка ошибок и отладка
 
 ## История проекта
 
@@ -179,6 +188,7 @@ GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Crystal Fusion
 - Прямую интеграцию с Cursor IDE через протокол MCP
 - Более богатый набор инструментов для анализа проектов
 - Возможность получения данных в реальном времени без экспорта файлов
+- Упрощенную конфигурацию и установку
 
 ## Дополнительные ресурсы
 
