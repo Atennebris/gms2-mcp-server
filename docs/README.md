@@ -17,8 +17,7 @@ This solution makes working with GMS2 projects more efficient, especially when c
 gms2-mcp-server/
 ├── mcp-serv/
 │   ├── mcp_server.py       # MCP server with 7 tools 
-│   ├── gms2_parser.py      # GameMaker Studio 2 project parser 
-│   └── config.env          # Project configuration
+│   └── gms2_parser.py      # GameMaker Studio 2 project parser 
 ├── docs/
 │   ├── README.md           # Documentation in English
 │   └── README_RU.md        # Documentation in Russian
@@ -26,7 +25,7 @@ gms2-mcp-server/
 └── venv/                   # Python virtual environment (created by user)
 
 Additionally, the user creates:
-└── .cursor/mcp.json       # Cursor IDE configuration
+└── .cursor/mcp.json       # Cursor IDE configuration (includes project path)
 ```
 
 ## Installation
@@ -57,31 +56,29 @@ pip install -r requirements.txt
 - `mcp==1.11.0` - official Python SDK for Model Context Protocol
 - `python-dotenv==1.1.1` - loading configuration from .env files
 
-### 4. Configuration setup
-Edit the `mcp-serv/config.env` file:
-```env
-# Path to your GMS2 project (required!)
-GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Your GMS2 Project
-
-# Example with spaces in path
-GMS2_PROJECT_PATH=C:/Users/YourName/Downloads/Crystal Fusion
-```
-
-### 5. Cursor IDE configuration
+### 4. Cursor IDE configuration
 
 Create a `.cursor/mcp.json` file in your project root with the following content:
 
-#### Simple absolute path configuration (recommended):
+#### Complete configuration with project path (recommended):
 ```json
 {
   "mcpServers": {
     "gms2-mcp": {
       "command": "python",
-      "args": ["C:/Users/YourName/Desktop/gms2-mcp-server/mcp-serv/mcp_server.py"]
+      "args": ["C:/Users/YourName/Desktop/gms2-mcp-server/mcp-serv/mcp_server.py"],
+      "env": {
+        "GMS2_PROJECT_PATH": "C:/Users/YourName/Downloads/Your GMS2 Project"
+      }
     }
   }
 }
 ```
+
+**⚠️ Important:** 
+- Replace the path in `args` with the absolute path to your MCP server folder!
+- Replace the path in `env.GMS2_PROJECT_PATH` with the absolute path to your GMS2 project folder (contains .yyp file)!
+- Use forward slashes `/` even on Windows
 
 #### Option 2: Global configuration (for all projects)
 1. In Cursor IDE, open settings
@@ -90,14 +87,12 @@ Create a `.cursor/mcp.json` file in your project root with the following content
 4. This will open the global mcp.json file
 5. Add the same configuration there
 
-**⚠️ Important:** Replace the path with the absolute path to your MCP server folder!
-
 **Launch architecture:**
 1. Cursor IDE directly launches `python mcp-serv/mcp_server.py`
-2. `mcp_server.py` loads configuration from `mcp-serv/config.env` and initializes the parser
+2. `mcp_server.py` loads project path from environment variable `GMS2_PROJECT_PATH` (set in mcp.json)
 3. Parser `gms2_parser.py` provides functionality for working with GMS2 projects
 
-### 6. Restart Cursor IDE
+### 5. Restart Cursor IDE
 After configuring, restart Cursor IDE.
 **In Cursor IDE:** Open command palette and check MCP servers status.
 
@@ -114,11 +109,11 @@ After successful installation, **7 tools** will be available in Cursor IDE:
 - 📋 **list_project_assets** - list all assets by categories (Objects, Scripts, Rooms, Sprites, etc.)
 
 **Features:**
-- Support for projects with spaces in paths (via config.env)
+- Support for projects with spaces in paths (via environment variables)
 - Automatic project structure detection
 - Export in human-readable format
 - Full compatibility with .yyp and .yy file formats
-- Simplified configuration without wrapper scripts
+- Simplified configuration through mcp.json only
 
 ## Usage Example
 
@@ -140,12 +135,12 @@ In Cursor IDE (AI agent) you can ask:
 ## Troubleshooting
 
 ### MCP server shows red status
-1. Check absolute path in `.cursor/mcp.json`
+1. Check absolute path in `.cursor/mcp.json` (both `args` and `env.GMS2_PROJECT_PATH`)
 2. Make sure venv is created and dependencies are installed
-3. Check project path in `mcp-serv/config.env`
+3. Check project path in `env.GMS2_PROJECT_PATH` section of mcp.json
 
 ### Server doesn't find the project
-1. Make sure the path in `mcp-serv/config.env` is correct
+1. Make sure the path in `env.GMS2_PROJECT_PATH` is correct
 2. Path should point to folder with .yyp file
 3. Use forward slashes `/` even on Windows
 
@@ -157,8 +152,8 @@ In Cursor IDE (AI agent) you can ask:
 ### Import errors or path issues
 All import and path issues have been resolved in the current version:
 - `gms2_parser.py` is now in the same directory as `mcp_server.py`
-- `config.env` is located in the `mcp-serv/` directory
-- No wrapper scripts needed
+- Project path is configured directly in `.cursor/mcp.json` via environment variables
+- No config files or wrapper scripts needed
 
 ## Technical Information
 
@@ -172,12 +167,12 @@ The project consists of two main components:
 - **mcp-serv/mcp_server.py** - MCP server with 7 tools for analysis
 
 ### What's Changed
-**Version 2.0 improvements:**
+**Version 2.1 improvements:**
 - ✅ Simplified project structure (no wrapper scripts)
 - ✅ Fixed all import and path issues
-- ✅ Moved config.env to mcp-serv/ directory
+- ✅ Removed config.env dependency - all configuration now in mcp.json
 - ✅ Consolidated all server code in mcp-serv/
-- ✅ Simplified .cursor/mcp.json configuration
+- ✅ Project path configured via environment variables in mcp.json
 - ✅ Improved error handling and debugging
 
 ## Project History
